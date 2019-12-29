@@ -5,6 +5,7 @@ const scrt = require('../config/cfg')
 
 authCtrl.signUp = async (req, res) => {
     const { email, name, password } = req.body
+
     var user = await User.findOne({ $or: [{ email }, { name }] })
     if (user) {
         var message = null
@@ -16,6 +17,7 @@ authCtrl.signUp = async (req, res) => {
         user = new User({
             name,
             email,
+            password
         });
 
         user.password = await user.encryptPassword(password)
@@ -28,21 +30,22 @@ authCtrl.signUp = async (req, res) => {
 
 
 authCtrl.logIn = async (req, res) => {
-    console.log(req.body)
+    const {name, email, password} = req.body
     try {
-        const user = await User.findOne({ email: req.body.email })
-        authCtrl.newToken(user)
-        res.json({ auth: user.passwordValidate(req.body.password) || false, user })
-        res.json({ auth: true, token, user: { name, email, _id: user._id } })
+        const user = await User.findOne({ $or: [{ email }, { name }] })
+        const token=authCtrl.newToken(user)
+        res.json({ auth: user.passwordValidate(password) || false,  token, user: { name, email, _id: user._id } })
     } catch{ res.json({ auth: false }) }
 
 }
 
 authCtrl.tokenVerify = async (req, res, next) => {
     try {
-        const decoded = jwt.verify(req.header('x-access-token'), scrt)
-        req.body.user = await User.findOne({ _id: decoded._id })
-        console.log(decoded)
+        const token=req.header('x-access-token')
+        const decoded = jwt.verify(token, scrt)
+        const user = await User.findOne({ _id: decoded.user._id })
+        
+        res.json({ auth: true, token, user: { name:user.name, email:user.email, _id: user._id } })
     } catch { res.json({ aut: false, message: 'Token error' }) }
 
     next()

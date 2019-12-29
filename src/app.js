@@ -13,4 +13,5 @@ app.use(express.json());
 
 //routes
 app.use('/auth', require('./routes/auth'))
+app.get('/', (req,res)=>res.send("sss"))
 module.exports = app;
